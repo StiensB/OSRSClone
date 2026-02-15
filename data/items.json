@@ -1,0 +1,10 @@
+[
+  {"id":"coins","name":"Sun Coins","stackable":true,"description":"Minted currency used by local traders.","value":1},
+  {"id":"bronze_axe","name":"Bronze Hatchet","stackable":false,"description":"A basic woodcutting tool.","value":35},
+  {"id":"bronze_pick","name":"Bronze Pick","stackable":false,"description":"A basic mining tool.","value":35},
+  {"id":"bronze_rod","name":"Bronze Rod","stackable":false,"description":"A flexible fishing rod.","value":35},
+  {"id":"bronze_blade","name":"Bronze Blade","stackable":false,"description":"An entry-level one-handed weapon.","value":55},
+  {"id":"logs","name":"Timber Logs","stackable":true,"description":"Chopped from wild trees.","value":6},
+  {"id":"ore","name":"Copper Ore Chunk","stackable":true,"description":"Useful for smelting later.","value":10},
+  {"id":"fish","name":"Riverfish","stackable":true,"description":"Fresh and wriggly.","value":12}
+]

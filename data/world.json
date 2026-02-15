@@ -1,0 +1,9 @@
+{
+  "name":"Emberfall Basin",
+  "width":120,
+  "height":120,
+  "spawn":[15,16],
+  "town":{"x":8,"y":8,"w":20,"h":20},
+  "lake":{"x":36,"y":20,"w":18,"h":16},
+  "wildernessStartY":60
+}

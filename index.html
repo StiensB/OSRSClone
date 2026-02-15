@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emberfall Prototype</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <section id="gameSection">
+      <div id="hudTopLeft">
+        <div id="nameLine">Astra Wanderer <span id="combatLevel">CB 3</span></div>
+        <div class="hpWrap"><div id="hpBar"></div><span id="hpText">10/10</span></div>
+        <div id="debugPanel" class="hidden"></div>
+      </div>
+      <canvas id="gameCanvas" width="960" height="640"></canvas>
+      <canvas id="miniMap" width="180" height="180"></canvas>
+      <div id="tooltip" class="hidden"></div>
+      <div id="contextMenu" class="hidden"></div>
+    </section>
+
+    <aside id="rightPanel">
+      <div id="tabButtons">
+        <button data-tab="inventory" class="active">Inventory</button>
+        <button data-tab="equipment">Equipment</button>
+        <button data-tab="skills">Skills</button>
+        <button data-tab="combat">Combat</button>
+        <button id="debugToggle">Debug</button>
+      </div>
+      <div id="tabContent"></div>
+    </aside>
+  </div>
+
+  <section id="chatSection">
+    <div id="chatLog"></div>
+    <input id="chatInput" placeholder="Type a message (local only)" />
+  </section>
+
+  <div id="bankModal" class="hidden">
+    <div class="modalBody">
+      <h3>Town Vault</h3>
+      <div class="bankCols">
+        <div>
+          <h4>Inventory (click to deposit)</h4>
+          <div id="bankInventory"></div>
+        </div>
+        <div>
+          <h4>Bank (click to withdraw)</h4>
+          <div id="bankStorage"></div>
+        </div>
+      </div>
+      <button id="closeBank">Close</button>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

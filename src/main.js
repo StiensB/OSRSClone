@@ -1,0 +1,92 @@
+import { createInput } from './engine/input.js';
+import { renderGame, renderMinimap } from './engine/rendering.js';
+import { TILE_SIZE, clamp } from './engine/utils.js';
+import { createWorld, isWalkable } from './game/world.js';
+import { createPlayer, spawnNpcs } from './game/entities.js';
+import { createUi } from './game/ui.js';
+import { deserialize, handleClick, serialize, tickUiEffects, tryPickup, updateCombat, updateMovement, updateNodes, updateSkilling } from './game/systems.js';
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mini = document.getElementById('miniMap');
+const world = createWorld();
+const player = createPlayer(world.spawn);
+const state = {
+  world, player,
+  npcs: spawnNpcs(), nodes: world.nodes, groundItems: [],
+  destination: null, discovered: new Set(), debug: false,
+  camera: { x: 0, y: 0 }, fps: 0, ui: null,
+  chat: () => {}
+};
+state.ui = createUi(state);
+state.chat = state.ui.chat;
+
+const save = localStorage.getItem('emberfall-save-v1');
+if (save) deserialize(state, JSON.parse(save));
+else {
+  state.chat('Welcome to Emberfall Basin. Left click to walk or interact.');
+  state.chat('Starter tools are in your inventory. Gather, bank, and battle.');
+}
+
+const input = createInput(canvas);
+let prev = performance.now(), fpsTimer = 0, frames = 0;
+
+canvas.addEventListener('mousemove', () => {
+  const { tx, ty, target } = screenToTile(input.mouseX, input.mouseY);
+  canvas.style.cursor = target ? 'pointer' : isWalkable(world, tx, ty) ? 'crosshair' : 'not-allowed';
+});
+canvas.addEventListener('click', () => {
+  const { tx, ty, target } = screenToTile(input.click.x, input.click.y);
+  handleClick(state, tx, ty, target);
+  input.click = null;
+});
+
+document.getElementById('debugToggle').onclick = () => {
+  state.debug = !state.debug;
+  document.getElementById('debugPanel').classList.toggle('hidden', !state.debug);
+};
+
+setInterval(() => localStorage.setItem('emberfall-save-v1', JSON.stringify(serialize(state))), 4000);
+
+function loop(now) {
+  const dt = clamp((now - prev) / 1000, 0, 0.05); prev = now;
+  updateMovement(state, dt);
+  updateSkilling(state, now);
+  updateNodes(state, now);
+  updateCombat(state, now);
+  tryPickup(state);
+  tickUiEffects(player, dt);
+
+  updateCamera();
+  discoverTiles();
+  renderGame(ctx, state);
+  renderMinimap(mini, world, player, state.npcs, state.camera, state.discovered);
+  state.ui.render();
+
+  frames++; fpsTimer += dt;
+  if (fpsTimer > 0.5) {
+    state.fps = Math.round(frames / fpsTimer); frames = 0; fpsTimer = 0;
+    document.getElementById('debugPanel').textContent = `FPS ${state.fps} | NPCs ${state.npcs.filter(n=>!n.dead).length} | Ground ${state.groundItems.length}`;
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function updateCamera() {
+  state.camera.x = clamp(player.x * TILE_SIZE - canvas.width / 2, 0, world.width * TILE_SIZE - canvas.width);
+  state.camera.y = clamp(player.y * TILE_SIZE - canvas.height / 2, 0, world.height * TILE_SIZE - canvas.height);
+}
+
+function screenToTile(sx, sy) {
+  const tx = Math.floor((sx + state.camera.x) / TILE_SIZE);
+  const ty = Math.floor((sy + state.camera.y) / TILE_SIZE);
+  const node = state.nodes.find((n) => !n.depleted && n.x === tx && n.y === ty);
+  const npc = state.npcs.find((n) => !n.dead && Math.round(n.x) === tx && Math.round(n.y) === ty);
+  const ground = state.groundItems.find((g) => g.x === tx && g.y === ty);
+  return { tx, ty, target: node ? { kind: 'node', node } : npc ? { kind: 'npc', npc } : ground ? { kind: 'ground', item: ground } : null };
+}
+
+function discoverTiles() {
+  const px = Math.round(player.x), py = Math.round(player.y);
+  for (let y = py - 10; y <= py + 10; y++) for (let x = px - 10; x <= px + 10; x++) if (x >= 0 && y >= 0 && x < world.width && y < world.height) state.discovered.add(`${x},${y}`);
+}
