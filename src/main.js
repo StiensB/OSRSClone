@@ -15,6 +15,7 @@ const state = {
   world, player,
   npcs: spawnNpcs(), nodes: world.nodes, groundItems: [],
   destination: null, discovered: new Set(), debug: false,
+  viewMode: 'topdown',
   camera: { x: 0, y: 0 }, fps: 0, ui: null,
   chat: () => {}
 };
@@ -37,6 +38,7 @@ canvas.addEventListener('mousemove', () => {
   canvas.style.cursor = target ? 'pointer' : isWalkable(world, tx, ty) ? 'crosshair' : 'not-allowed';
 });
 canvas.addEventListener('click', () => {
+  if (!input.click) return;
   const { tx, ty, target } = screenToTile(input.click.x, input.click.y);
   handleClick(state, tx, ty, target);
   input.click = null;
@@ -45,6 +47,11 @@ canvas.addEventListener('click', () => {
 document.getElementById('debugToggle').onclick = () => {
   state.debug = !state.debug;
   document.getElementById('debugPanel').classList.toggle('hidden', !state.debug);
+};
+
+document.getElementById('viewToggle').onclick = () => {
+  state.viewMode = state.viewMode === 'topdown' ? 'iso' : 'topdown';
+  state.chat(`View mode switched to ${state.viewMode === 'iso' ? '2.5D isometric' : 'top-down'}.`);
 };
 
 setInterval(() => localStorage.setItem('emberfall-save-v1', JSON.stringify(serialize(state))), 4000);
@@ -67,7 +74,7 @@ function loop(now) {
   frames++; fpsTimer += dt;
   if (fpsTimer > 0.5) {
     state.fps = Math.round(frames / fpsTimer); frames = 0; fpsTimer = 0;
-    document.getElementById('debugPanel').textContent = `FPS ${state.fps} | NPCs ${state.npcs.filter(n=>!n.dead).length} | Ground ${state.groundItems.length}`;
+    document.getElementById('debugPanel').textContent = `FPS ${state.fps} | NPCs ${state.npcs.filter(n=>!n.dead).length} | Ground ${state.groundItems.length} | View ${state.viewMode}`;
   }
   requestAnimationFrame(loop);
 }
@@ -79,8 +86,31 @@ function updateCamera() {
 }
 
 function screenToTile(sx, sy) {
+  if (state.viewMode === 'iso') return screenToTileIso(sx, sy);
+  return screenToTileTopDown(sx, sy);
+}
+
+function screenToTileTopDown(sx, sy) {
   const tx = Math.floor((sx + state.camera.x) / TILE_SIZE);
   const ty = Math.floor((sy + state.camera.y) / TILE_SIZE);
+  return withTarget(tx, ty);
+}
+
+function screenToTileIso(sx, sy) {
+  const isoW = TILE_SIZE * 0.72;
+  const isoH = TILE_SIZE * 0.38;
+  const centerX = canvas.width * 0.5;
+  const centerY = canvas.height * 0.24;
+  const rx = sx - centerX;
+  const ry = sy - centerY;
+  const dx = (ry / isoH + rx / isoW) * 0.5;
+  const dy = (ry / isoH - rx / isoW) * 0.5;
+  const tx = Math.floor(player.x + dx);
+  const ty = Math.floor(player.y + dy);
+  return withTarget(tx, ty);
+}
+
+function withTarget(tx, ty) {
   const node = state.nodes.find((n) => !n.depleted && n.x === tx && n.y === ty);
   const npc = state.npcs.find((n) => !n.dead && Math.round(n.x) === tx && Math.round(n.y) === ty);
   const ground = state.groundItems.find((g) => g.x === tx && g.y === ty);

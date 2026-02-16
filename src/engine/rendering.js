@@ -4,7 +4,15 @@ const tileColors = {
   grass: '#3f7f3a', dirt: '#8a6a3f', water: '#2f588c', rock: '#55585a', wood: '#6b4f31', wall: '#7b7a70', sand: '#9f8e5c'
 };
 
+const ISO_W = TILE_SIZE * 0.72;
+const ISO_H = TILE_SIZE * 0.38;
+
 export function renderGame(ctx, state) {
+  if (state.viewMode === 'iso') {
+    renderIsoGame(ctx, state);
+    return;
+  }
+
   const { world, camera, player, npcs, nodes, groundItems, destination, debug } = state;
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.imageSmoothingEnabled = false;
@@ -21,13 +29,152 @@ export function renderGame(ctx, state) {
     drawTile(ctx, t, x, y, px, py);
   }
 
-  drawObjects(ctx, nodes, camera);
-  drawGroundItems(ctx, groundItems, camera);
-  drawNpcs(ctx, npcs, camera);
-  drawPlayer(ctx, player, camera);
-  if (destination) drawDestination(ctx, destination, camera);
+  drawObjectsTopDown(ctx, nodes, camera);
+  drawGroundItemsTopDown(ctx, groundItems, camera);
+  drawNpcsTopDown(ctx, npcs, camera);
+  drawPlayerTopDown(ctx, player, camera);
+  if (destination) drawDestinationTopDown(ctx, destination, camera);
   applyVignette(ctx);
   if (debug) drawGrid(ctx, camera, world.width, world.height);
+}
+
+function renderIsoGame(ctx, state) {
+  const { world, player, npcs, nodes, groundItems, destination, debug } = state;
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.imageSmoothingEnabled = false;
+
+  const centerX = ctx.canvas.width * 0.5;
+  const centerY = ctx.canvas.height * 0.24;
+  const cx = Math.round(player.x);
+  const cy = Math.round(player.y);
+  const radius = 22;
+
+  const minX = Math.max(0, cx - radius);
+  const maxX = Math.min(world.width - 1, cx + radius);
+  const minY = Math.max(0, cy - radius);
+  const maxY = Math.min(world.height - 1, cy + radius);
+
+  for (let s = minX + minY; s <= maxX + maxY; s++) {
+    for (let y = minY; y <= maxY; y++) {
+      const x = s - y;
+      if (x < minX || x > maxX) continue;
+      const t = world.tiles[y]?.[x];
+      if (!t) continue;
+      const p = isoProject(x, y, player.x, player.y, centerX, centerY);
+      drawIsoTile(ctx, t, p.x, p.y);
+    }
+  }
+
+  // Build depth-sorted draw list for entities/objects
+  const drawList = [];
+  for (const n of nodes) if (!n.depleted && Math.abs(n.x - cx) <= radius && Math.abs(n.y - cy) <= radius) {
+    drawList.push({ depth: n.x + n.y + 0.35, fn: () => drawIsoNode(ctx, n, player, centerX, centerY) });
+  }
+  for (const g of groundItems) if (Math.abs(g.x - cx) <= radius && Math.abs(g.y - cy) <= radius) {
+    drawList.push({ depth: g.x + g.y + 0.45, fn: () => drawIsoGroundItem(ctx, g, player, centerX, centerY) });
+  }
+  for (const n of npcs) if (!n.dead && Math.abs(n.x - cx) <= radius && Math.abs(n.y - cy) <= radius) {
+    drawList.push({ depth: n.x + n.y + 0.6, fn: () => drawIsoNpc(ctx, n, player, centerX, centerY) });
+  }
+  drawList.push({ depth: player.x + player.y + 0.62, fn: () => drawIsoPlayer(ctx, player, centerX, centerY) });
+  drawList.sort((a, b) => a.depth - b.depth).forEach((d) => d.fn());
+
+  if (destination) drawIsoDestination(ctx, destination, player, centerX, centerY);
+  if (debug) drawIsoDebug(ctx, player, centerX, centerY);
+  applyVignette(ctx);
+}
+
+function isoProject(x, y, px, py, cx, cy) {
+  const dx = x - px;
+  const dy = y - py;
+  return { x: cx + (dx - dy) * ISO_W, y: cy + (dx + dy) * ISO_H };
+}
+
+function drawIsoTile(ctx, kind, sx, sy) {
+  const c = tileColors[kind] || '#f0f';
+  ctx.fillStyle = c;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(sx + ISO_W, sy + ISO_H);
+  ctx.lineTo(sx, sy + ISO_H * 2);
+  ctx.lineTo(sx - ISO_W, sy + ISO_H);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(0,0,0,.15)';
+  ctx.stroke();
+
+  if (kind === 'water') {
+    ctx.fillStyle = 'rgba(255,255,255,.10)';
+    ctx.fillRect(sx - 5, sy + ISO_H, 10, 2);
+  }
+}
+
+function drawIsoPlayer(ctx, p, cx, cy) {
+  const pos = isoProject(p.x, p.y, p.x, p.y, cx, cy);
+  const bob = Math.sin(performance.now() / 220) * 1;
+  drawShadow(ctx, pos.x - 10, pos.y + ISO_H * 1.6, 20, 5);
+  pxRect(ctx, pos.x - 8, pos.y - 20 + bob, 16, 8, '#241812');
+  pxRect(ctx, pos.x - 10, pos.y - 12 + bob, 20, 10, '#241812');
+  pxRect(ctx, pos.x - 7, pos.y - 19 + bob, 14, 7, '#edcc9b');
+  pxRect(ctx, pos.x - 8, pos.y - 11 + bob, 16, 8, '#496f9f');
+  pxRect(ctx, pos.x - 8, pos.y - 2 + bob, 6, 5, '#384f78');
+  pxRect(ctx, pos.x + 2, pos.y - 2 + bob, 6, 5, '#384f78');
+  if (p.equipment?.weapon === 'bronze_axe') {
+    pxRect(ctx, pos.x + 10, pos.y - 10 + bob, 1, 10, '#5e3b1f');
+    pxRect(ctx, pos.x + 9, pos.y - 10 + bob, 3, 2, '#8e8f93');
+  }
+}
+
+function drawIsoNpc(ctx, n, p, cx, cy) {
+  const pos = isoProject(n.x, n.y, p.x, p.y, cx, cy);
+  drawShadow(ctx, pos.x - 9, pos.y + ISO_H * 1.6, 18, 5);
+  if (n.kind === 'bog_raider') {
+    pxRect(ctx, pos.x - 7, pos.y - 16, 14, 8, '#b89579');
+    pxRect(ctx, pos.x - 9, pos.y - 8, 18, 10, '#7c4747');
+  } else {
+    pxRect(ctx, pos.x - 8, pos.y - 7, 16, 8, '#8e8459');
+    pxRect(ctx, pos.x - 5, pos.y - 11, 10, 4, '#dad29e');
+  }
+}
+
+function drawIsoNode(ctx, n, p, cx, cy) {
+  const pos = isoProject(n.x, n.y, p.x, p.y, cx, cy);
+  if (n.type === 'tree') {
+    drawShadow(ctx, pos.x - 9, pos.y + ISO_H * 1.6, 18, 5);
+    pxRect(ctx, pos.x - 3, pos.y - 18, 6, 20, '#4a2f18');
+    pxRect(ctx, pos.x - 11, pos.y - 26, 22, 13, '#2f7f39');
+  }
+  if (n.type === 'rock') {
+    drawShadow(ctx, pos.x - 8, pos.y + ISO_H * 1.6, 16, 5);
+    pxRect(ctx, pos.x - 9, pos.y - 14, 18, 12, '#777');
+  }
+  if (n.type === 'fish') {
+    pxRect(ctx, pos.x - 8, pos.y - 2, 16, 3, '#b9d8ff');
+  }
+  if (n.type === 'bank') {
+    pxRect(ctx, pos.x - 10, pos.y - 20, 20, 20, '#c5ae79');
+    pxRect(ctx, pos.x - 8, pos.y - 16, 16, 4, '#8f753f');
+  }
+}
+
+function drawIsoGroundItem(ctx, g, p, cx, cy) {
+  const pos = isoProject(g.x, g.y, p.x, p.y, cx, cy);
+  drawShadow(ctx, pos.x - 4, pos.y + ISO_H * 1.6, 8, 3);
+  pxRect(ctx, pos.x - 3, pos.y - 3, 6, 6, '#ffd85f');
+}
+
+function drawIsoDestination(ctx, d, p, cx, cy) {
+  const pos = isoProject(d.x, d.y, p.x, p.y, cx, cy);
+  ctx.strokeStyle = '#fffd86'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(pos.x - 8, pos.y - 8); ctx.lineTo(pos.x + 8, pos.y + 8); ctx.moveTo(pos.x + 8, pos.y - 8); ctx.lineTo(pos.x - 8, pos.y + 8); ctx.stroke();
+  ctx.lineWidth = 1;
+}
+
+function drawIsoDebug(ctx, p, cx, cy) {
+  const pos = isoProject(Math.round(p.x), Math.round(p.y), p.x, p.y, cx, cy);
+  ctx.strokeStyle = 'rgba(255,255,255,.4)';
+  ctx.strokeRect(pos.x - 6, pos.y - 4, 12, 8);
 }
 
 function drawTile(ctx, t, x, y, px, py) {
@@ -63,43 +210,36 @@ function drawTile(ctx, t, x, y, px, py) {
   }
 }
 
-function drawPlayer(ctx, p, camera) {
+function drawPlayerTopDown(ctx, p, camera) {
   const x = p.x * TILE_SIZE - camera.x + 3;
   const y = p.y * TILE_SIZE - camera.y + 2;
   const bob = Math.sin(performance.now() / 240) * 0.8;
 
   drawShadow(ctx, x + 3, y + 22, 18, 5);
-
-  // OSRS-inspired chunky silhouette: outline first
-  pxRect(ctx, x + 6, y + 2 + bob, 10, 9, '#241812'); // head outline
-  pxRect(ctx, x + 4, y + 11 + bob, 14, 9, '#241812'); // torso outline
+  pxRect(ctx, x + 6, y + 2 + bob, 10, 9, '#241812');
+  pxRect(ctx, x + 4, y + 11 + bob, 14, 9, '#241812');
   pxRect(ctx, x + 4, y + 20 + bob, 6, 6, '#241812');
   pxRect(ctx, x + 12, y + 20 + bob, 6, 6, '#241812');
-
   pxRect(ctx, x + 7, y + 3 + bob, 8, 7, '#edcc9b');
   pxRect(ctx, x + 5, y + 12 + bob, 12, 7, '#496f9f');
   pxRect(ctx, x + 5, y + 20 + bob, 5, 5, '#384f78');
   pxRect(ctx, x + 12, y + 20 + bob, 5, 5, '#384f78');
-
-  // face details + cape hint
   pxRect(ctx, x + 8, y + 5 + bob, 1, 1, '#2a2a2a');
   pxRect(ctx, x + 13, y + 5 + bob, 1, 1, '#2a2a2a');
   pxRect(ctx, x + 3, y + 11 + bob, 2, 9, '#553254');
 
   if (p.equipment?.weapon === 'bronze_axe') {
-    // simple equipped hatchet silhouette
     pxRect(ctx, x + 17, y + 12 + bob, 1, 10, '#5e3b1f');
     pxRect(ctx, x + 16, y + 12 + bob, 3, 2, '#8e8f93');
     pxRect(ctx, x + 15, y + 13 + bob, 2, 2, '#8e8f93');
   }
 }
 
-function drawNpcs(ctx, list, camera) {
+function drawNpcsTopDown(ctx, list, camera) {
   const t = performance.now();
   for (const n of list) if (!n.dead) {
     const x = n.x * TILE_SIZE - camera.x + 4;
     const y = n.y * TILE_SIZE - camera.y + 4 + Math.sin((t + n.x * 17) / 300) * 0.7;
-
     if (n.kind === 'bog_raider') drawRaider(ctx, x, y);
     else drawPecker(ctx, x, y);
   }
@@ -123,13 +263,13 @@ function drawPecker(ctx, x, y) {
   drawShadow(ctx, x + 5, y + 19, 14, 4);
   pxRect(ctx, x + 6, y + 8, 12, 8, '#8e8459');
   pxRect(ctx, x + 8, y + 5, 8, 5, '#dad29e');
-  pxRect(ctx, x + 17, y + 8, 3, 3, '#c88e39'); // beak
+  pxRect(ctx, x + 17, y + 8, 3, 3, '#c88e39');
   pxRect(ctx, x + 8, y + 16, 2, 7, '#6f5a34');
   pxRect(ctx, x + 14, y + 16, 2, 7, '#6f5a34');
   pxRect(ctx, x + 9, y + 6, 1, 1, '#2b2b2b');
 }
 
-function drawObjects(ctx, nodes, camera) {
+function drawObjectsTopDown(ctx, nodes, camera) {
   for (const n of nodes) if (!n.depleted) {
     const x = n.x * TILE_SIZE - camera.x;
     const y = n.y * TILE_SIZE - camera.y;
@@ -162,7 +302,7 @@ function drawObjects(ctx, nodes, camera) {
   }
 }
 
-function drawGroundItems(ctx, items, camera) {
+function drawGroundItemsTopDown(ctx, items, camera) {
   for (const g of items) {
     const x = g.x * TILE_SIZE - camera.x + 10;
     const y = g.y * TILE_SIZE - camera.y + 10;
@@ -182,7 +322,7 @@ function pxRect(ctx, x, y, w, h, color) {
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
 }
 
-function drawDestination(ctx, d, camera) {
+function drawDestinationTopDown(ctx, d, camera) {
   const x = d.x * TILE_SIZE - camera.x + TILE_SIZE / 2;
   const y = d.y * TILE_SIZE - camera.y + TILE_SIZE / 2;
   ctx.strokeStyle = '#fffd86'; ctx.lineWidth = 2;

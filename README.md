@@ -36,6 +36,7 @@ You can try opening `index.html` directly, but some browsers restrict module/fil
 - **Click gear in Inventory**: Equip/unequip tools and weapons (equip hatchet to chop trees).
 - **Combat tab**: Choose combat style (Accurate/Aggressive/Defensive/Balanced) for OSRS-like XP training.
 - **I / S / E / Q**: Switch tabs (Inventory / Skills / Equipment / Quests).
+- **3D View button**: Toggle 2.5D isometric rendering mode.
 - **Debug button**: Toggle debug panel (FPS + entity counters).
 - **Chat input**: Enter sends local chat line.
 
@@ -58,6 +59,7 @@ You can try opening `index.html` directly, but some browsers restrict module/fil
 - Local save/load using `localStorage`.
 - Debug mode + lightweight sound beeps.
 - Improved tile/object shading and sprite detail for a clearer retro look.
+- 2.5D isometric render mode toggle for a more 3D-like perspective while keeping click-to-move gameplay.
 - Starter quest tracker with claimable rewards (Timber Trial).
 
 ## Data Files
