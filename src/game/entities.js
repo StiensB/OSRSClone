@@ -14,8 +14,8 @@ export function createPlayer(spawn) {
 
 export function spawnNpcs() {
   const list = [];
-  for (const p of [[34,40],[38,44],[45,41],[50,48]]) list.push(makeNpc('meadow_pecker', p[0], p[1]));
-  for (const p of [[72,68],[76,72],[85,78]]) list.push(makeNpc('bog_raider', p[0], p[1]));
+  for (const p of [[36,52],[42,58],[48,55],[56,62],[62,66],[68,60]]) list.push(makeNpc('meadow_pecker', p[0], p[1]));
+  for (const p of [[94,96],[100,102],[108,110],[118,118],[132,128],[145,140]]) list.push(makeNpc('bog_raider', p[0], p[1]));
   return list;
 }
 

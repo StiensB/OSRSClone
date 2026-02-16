@@ -44,15 +44,16 @@ You can try opening `index.html` directly, but some browsers restrict module/fil
 4. Repeat to level combat + gathering skills.
 
 ## Features Included
-- Tile world (120x120) with town, lake, and wilderness region.
+- Expanded tile world (180x180) with broader town, roads, lake, ridge passes, and deeper wilderness regions.
 - A* click-to-move pathfinding, collision, destination marker.
-- Minimap with fog-of-war-style discovery.
+- Minimap with fog-of-war-style discovery scaled for larger maps.
 - Inventory (28 slots), equipment, skills, combat tab.
 - Bank UI with deposit/withdraw.
 - Skilling tick loop (600ms), tool requirements, depletion/respawn.
 - Basic combat formulas, NPC aggro/roaming, drops, respawn.
 - Local save/load using `localStorage`.
 - Debug mode + lightweight sound beeps.
+- Improved tile/object shading and sprite detail for a clearer retro look.
 
 ## Data Files
 - `data/items.json`

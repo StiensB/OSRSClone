@@ -1,28 +1,82 @@
 export function createWorld() {
-  const width = 120; const height = 120;
+  const width = 180; const height = 180;
   const tiles = Array.from({ length: height }, () => Array.from({ length: width }, () => 'grass'));
   const blocked = new Set();
   const nodes = [];
 
-  for (let x = 9; x < 28; x++) for (let y = 9; y < 27; y++) tiles[y][x] = 'dirt';
-  for (let x = 11; x < 24; x++) for (let y = 11; y < 22; y++) tiles[y][x] = 'wood';
-  for (let x = 36; x < 54; x++) for (let y = 20; y < 36; y++) tiles[y][x] = 'water';
-  for (let y = 0; y < height; y++) { tiles[y][60] = 'rock'; blocked.add(`60,${y}`); }
-  for (let y = 60; y < height; y++) for (let x = 61; x < width; x++) if ((x + y) % 8 === 0) tiles[y][x] = 'dirt';
+  // Town basin (safe zone)
+  carveRect(tiles, 9, 9, 30, 30, 'dirt');
+  carveRect(tiles, 12, 12, 24, 18, 'wood');
 
-  for (let x = 10; x < 28; x++) { blocked.add(`${x},8`); blocked.add(`${x},27`); tiles[8][x] = 'wall'; tiles[27][x] = 'wall'; }
-  for (let y = 8; y < 28; y++) { blocked.add(`8,${y}`); blocked.add(`28,${y}`); tiles[y][8] = 'wall'; tiles[y][28] = 'wall'; }
-  blocked.delete('18,8'); tiles[8][18] = 'dirt';
+  // Main road stretching deeper into map
+  for (let x = 18; x < 150; x++) tiles[20 + Math.floor(Math.sin(x / 8) * 2)][x] = 'dirt';
+  for (let y = 20; y < 165; y++) tiles[y][90 + Math.floor(Math.sin(y / 10) * 2)] = 'dirt';
 
-  nodes.push({ id:'bank_1', type:'bank', x:17, y:15, label:'Town Vault', action:'bank' });
-  for (const p of [[14,31],[18,34],[21,33],[25,31],[29,32],[33,31]]) nodes.push({ id:`tree_${p[0]}_${p[1]}`, type:'tree', x:p[0], y:p[1], label:'Ash Tree', action:'woodcut', depleted:false, respawn:0 });
-  for (const p of [[66,68],[70,66],[74,70],[78,67],[82,72]]) nodes.push({ id:`rock_${p[0]}_${p[1]}`, type:'rock', x:p[0], y:p[1], label:'Copper Vein', action:'mine', depleted:false, respawn:0 });
-  for (const p of [[40,24],[43,27],[48,29]]) nodes.push({ id:`fish_${p[0]}_${p[1]}`, type:'fish', x:p[0], y:p[1], label:'River Shoal', action:'fish', depleted:false, respawn:0 });
+  // Large western lake and eastern marsh
+  carveRect(tiles, 42, 28, 26, 22, 'water');
+  carveEllipse(tiles, 142, 136, 18, 13, 'water');
 
-  for (let y = 20; y < 36; y++) for (let x = 36; x < 54; x++) blocked.add(`${x},${y}`);
+  // Cliffs / ridge divider with passes
+  for (let y = 0; y < height; y++) {
+    const x = 72 + Math.floor(Math.sin(y / 11) * 3);
+    tiles[y][x] = 'rock';
+    blocked.add(`${x},${y}`);
+  }
+  unblockPass(blocked, tiles, 72, 40);
+  unblockPass(blocked, tiles, 73, 94);
+  unblockPass(blocked, tiles, 71, 140);
+
+  // Town wall
+  for (let x = 10; x < 38; x++) { blocked.add(`${x},9`); blocked.add(`${x},38`); tiles[9][x] = 'wall'; tiles[38][x] = 'wall'; }
+  for (let y = 9; y < 39; y++) { blocked.add(`9,${y}`); blocked.add(`38,${y}`); tiles[y][9] = 'wall'; tiles[y][38] = 'wall'; }
+  unblockPass(blocked, tiles, 22, 9);
+
+  // Biome texturing in deep wilds
+  for (let y = 84; y < height; y++) {
+    for (let x = 76; x < width; x++) {
+      if ((x * 13 + y * 7) % 9 === 0) tiles[y][x] = 'dirt';
+      if ((x * 5 + y * 11) % 17 === 0) tiles[y][x] = 'rock';
+    }
+  }
+
+  // Collision for water bodies
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (tiles[y][x] === 'water') blocked.add(`${x},${y}`);
+
+  // Nodes: denser and spread wider
+  nodes.push({ id:'bank_1', type:'bank', x:21, y:18, label:'Town Vault', action:'bank' });
+  for (const p of [[16,44],[20,47],[25,45],[30,43],[35,46],[40,48],[46,53],[52,50],[58,55]]) {
+    nodes.push(node('tree', p[0], p[1], 'Ash Tree', 'woodcut'));
+  }
+  for (const p of [[84,92],[90,96],[95,100],[102,94],[110,108],[118,114],[130,126],[138,132],[146,138]]) {
+    nodes.push(node('rock', p[0], p[1], 'Copper Vein', 'mine'));
+  }
+  for (const p of [[46,32],[50,36],[56,40],[60,44],[142,130],[148,136]]) {
+    nodes.push(node('fish', p[0], p[1], 'River Shoal', 'fish'));
+  }
+
   for (const n of nodes) if (n.type === 'bank') blocked.add(`${n.x},${n.y}`);
 
-  return { width, height, tiles, blocked, nodes, spawn: { x: 15, y: 16 } };
+  return { width, height, tiles, blocked, nodes, spawn: { x: 19, y: 18 } };
+}
+
+function node(type, x, y, label, action) {
+  return { id:`${type}_${x}_${y}`, type, x, y, label, action, depleted:false, respawn:0 };
+}
+
+function carveRect(tiles, x, y, w, h, kind) {
+  for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) tiles[yy][xx] = kind;
+}
+
+function carveEllipse(tiles, cx, cy, rx, ry, kind) {
+  for (let y = cy - ry; y <= cy + ry; y++) for (let x = cx - rx; x <= cx + rx; x++) {
+    const dx = (x - cx) / rx; const dy = (y - cy) / ry;
+    if (dx * dx + dy * dy <= 1) tiles[y][x] = kind;
+  }
+}
+
+function unblockPass(blocked, tiles, x, y) {
+  blocked.delete(`${x},${y}`);
+  tiles[y][x] = 'dirt';
 }
 
 export function isWalkable(world, x, y) {
