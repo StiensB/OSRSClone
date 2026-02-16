@@ -35,7 +35,6 @@ function drawTile(ctx, t, x, y, px, py) {
   ctx.fillStyle = base;
   ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
 
-  // subtle texture variation
   const v = ((x * 17 + y * 31) % 7) / 7;
   ctx.fillStyle = `rgba(255,255,255,${0.03 + v * 0.03})`;
   ctx.fillRect(px + 1, py + 1, TILE_SIZE - 2, 2);
@@ -65,62 +64,115 @@ function drawTile(ctx, t, x, y, px, py) {
 }
 
 function drawPlayer(ctx, p, camera) {
-  const x = p.x * TILE_SIZE - camera.x + 4;
-  const y = p.y * TILE_SIZE - camera.y + 4;
-  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(x + 3, y + 20, 14, 5);
-  ctx.fillStyle = '#f3d9b1'; ctx.fillRect(x + 4, y, 12, 10);
-  ctx.fillStyle = '#1f2d3e'; ctx.fillRect(x + 5, y + 2, 3, 2); ctx.fillRect(x + 12, y + 2, 3, 2);
-  ctx.fillStyle = '#385e8c'; ctx.fillRect(x + 2, y + 10, 16, 11);
-  ctx.fillStyle = '#2d486b'; ctx.fillRect(x + 2, y + 20, 6, 4); ctx.fillRect(x + 12, y + 20, 6, 4);
+  const x = p.x * TILE_SIZE - camera.x + 3;
+  const y = p.y * TILE_SIZE - camera.y + 2;
+  const bob = Math.sin(performance.now() / 240) * 0.8;
+
+  drawShadow(ctx, x + 3, y + 22, 18, 5);
+
+  // OSRS-inspired chunky silhouette: outline first
+  pxRect(ctx, x + 6, y + 2 + bob, 10, 9, '#241812'); // head outline
+  pxRect(ctx, x + 4, y + 11 + bob, 14, 9, '#241812'); // torso outline
+  pxRect(ctx, x + 4, y + 20 + bob, 6, 6, '#241812');
+  pxRect(ctx, x + 12, y + 20 + bob, 6, 6, '#241812');
+
+  pxRect(ctx, x + 7, y + 3 + bob, 8, 7, '#edcc9b');
+  pxRect(ctx, x + 5, y + 12 + bob, 12, 7, '#496f9f');
+  pxRect(ctx, x + 5, y + 20 + bob, 5, 5, '#384f78');
+  pxRect(ctx, x + 12, y + 20 + bob, 5, 5, '#384f78');
+
+  // face details + cape hint
+  pxRect(ctx, x + 8, y + 5 + bob, 1, 1, '#2a2a2a');
+  pxRect(ctx, x + 13, y + 5 + bob, 1, 1, '#2a2a2a');
+  pxRect(ctx, x + 3, y + 11 + bob, 2, 9, '#553254');
 }
 
 function drawNpcs(ctx, list, camera) {
+  const t = performance.now();
   for (const n of list) if (!n.dead) {
-    const x = n.x * TILE_SIZE - camera.x + 5; const y = n.y * TILE_SIZE - camera.y + 6;
-    ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(x + 2, y + 12, 11, 4);
-    if (n.kind === 'bog_raider') {
-      ctx.fillStyle = '#7c4747'; ctx.fillRect(x, y, 16, 14);
-      ctx.fillStyle = '#513030'; ctx.fillRect(x + 3, y + 14, 10, 4);
-    } else {
-      ctx.fillStyle = '#d9d39a'; ctx.fillRect(x, y + 5, 16, 9);
-      ctx.fillStyle = '#a79f6f'; ctx.fillRect(x + 3, y + 14, 10, 3);
-    }
+    const x = n.x * TILE_SIZE - camera.x + 4;
+    const y = n.y * TILE_SIZE - camera.y + 4 + Math.sin((t + n.x * 17) / 300) * 0.7;
+
+    if (n.kind === 'bog_raider') drawRaider(ctx, x, y);
+    else drawPecker(ctx, x, y);
   }
+}
+
+function drawRaider(ctx, x, y) {
+  drawShadow(ctx, x + 3, y + 21, 17, 5);
+  pxRect(ctx, x + 6, y + 2, 9, 8, '#241812');
+  pxRect(ctx, x + 5, y + 10, 12, 10, '#241812');
+  pxRect(ctx, x + 4, y + 20, 5, 6, '#241812');
+  pxRect(ctx, x + 13, y + 20, 5, 6, '#241812');
+  pxRect(ctx, x + 7, y + 3, 7, 6, '#b89579');
+  pxRect(ctx, x + 6, y + 11, 10, 8, '#7c4747');
+  pxRect(ctx, x + 4, y + 12, 2, 6, '#5f3434');
+  pxRect(ctx, x + 16, y + 12, 2, 6, '#5f3434');
+  pxRect(ctx, x + 4, y + 21, 4, 4, '#513030');
+  pxRect(ctx, x + 14, y + 21, 4, 4, '#513030');
+}
+
+function drawPecker(ctx, x, y) {
+  drawShadow(ctx, x + 5, y + 19, 14, 4);
+  pxRect(ctx, x + 6, y + 8, 12, 8, '#8e8459');
+  pxRect(ctx, x + 8, y + 5, 8, 5, '#dad29e');
+  pxRect(ctx, x + 17, y + 8, 3, 3, '#c88e39'); // beak
+  pxRect(ctx, x + 8, y + 16, 2, 7, '#6f5a34');
+  pxRect(ctx, x + 14, y + 16, 2, 7, '#6f5a34');
+  pxRect(ctx, x + 9, y + 6, 1, 1, '#2b2b2b');
 }
 
 function drawObjects(ctx, nodes, camera) {
   for (const n of nodes) if (!n.depleted) {
-    const x = n.x * TILE_SIZE - camera.x; const y = n.y * TILE_SIZE - camera.y;
+    const x = n.x * TILE_SIZE - camera.x;
+    const y = n.y * TILE_SIZE - camera.y;
     if (n.type === 'tree') {
-      ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(x + 14, y + 23, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#4a2f18'; ctx.fillRect(x + 11, y + 14, 6, 12);
-      ctx.fillStyle = '#2f7f39'; ctx.beginPath(); ctx.arc(x + 14, y + 12, 10, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,.10)'; ctx.beginPath(); ctx.arc(x + 11, y + 9, 4, 0, Math.PI * 2); ctx.fill();
+      drawShadow(ctx, x + 6, y + 23, 16, 4);
+      pxRect(ctx, x + 11, y + 13, 6, 13, '#4a2f18');
+      pxRect(ctx, x + 7, y + 8, 14, 10, '#2f7f39');
+      pxRect(ctx, x + 5, y + 10, 4, 5, '#2a6f32');
+      pxRect(ctx, x + 19, y + 10, 4, 5, '#2a6f32');
+      pxRect(ctx, x + 10, y + 7, 5, 3, '#5da562');
     }
     if (n.type === 'rock') {
-      ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(x + 14, y + 22, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#777'; ctx.beginPath(); ctx.arc(x + 14, y + 16, 10, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#9b9fa3'; ctx.fillRect(x + 10, y + 10, 5, 3);
+      drawShadow(ctx, x + 6, y + 23, 16, 4);
+      pxRect(ctx, x + 7, y + 10, 14, 12, '#777');
+      pxRect(ctx, x + 9, y + 12, 4, 3, '#9da2a6');
+      pxRect(ctx, x + 14, y + 15, 5, 2, '#616468');
     }
     if (n.type === 'fish') {
-      ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.fillRect(x + 6, y + 18, 16, 2);
-      ctx.fillStyle = '#b9d8ff'; ctx.fillRect(x + 6, y + 14, 16, 5);
-      ctx.fillStyle = '#e8f4ff'; ctx.fillRect(x + 9, y + 15, 4, 1);
+      pxRect(ctx, x + 5, y + 18, 17, 2, 'rgba(0,0,0,.14)');
+      pxRect(ctx, x + 6, y + 14, 16, 4, '#b9d8ff');
+      pxRect(ctx, x + 8, y + 15, 5, 1, '#edf8ff');
+      pxRect(ctx, x + 16, y + 15, 3, 1, '#7caad7');
     }
     if (n.type === 'bank') {
-      ctx.fillStyle = '#c5ae79'; ctx.fillRect(x + 4, y + 4, 20, 20);
-      ctx.fillStyle = '#8f753f'; ctx.fillRect(x + 6, y + 6, 16, 4);
-      ctx.fillStyle = '#5d4928'; ctx.fillRect(x + 11, y + 12, 6, 9);
+      pxRect(ctx, x + 3, y + 3, 22, 22, '#5d4928');
+      pxRect(ctx, x + 5, y + 6, 18, 16, '#c5ae79');
+      pxRect(ctx, x + 6, y + 7, 16, 4, '#8f753f');
+      pxRect(ctx, x + 12, y + 13, 4, 8, '#6d5430');
     }
   }
 }
 
 function drawGroundItems(ctx, items, camera) {
   for (const g of items) {
-    const x = g.x * TILE_SIZE - camera.x + 10; const y = g.y * TILE_SIZE - camera.y + 10;
-    ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(x, y + 6, 8, 2);
-    ctx.fillStyle = '#ffd85f'; ctx.fillRect(x, y, 7, 7);
+    const x = g.x * TILE_SIZE - camera.x + 10;
+    const y = g.y * TILE_SIZE - camera.y + 10;
+    drawShadow(ctx, x, y + 6, 8, 2);
+    pxRect(ctx, x, y, 7, 7, '#ffd85f');
+    pxRect(ctx, x + 2, y + 2, 2, 2, '#fff2a2');
   }
+}
+
+function drawShadow(ctx, x, y, w, h) {
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
+  ctx.fillRect(x, y, w, h);
+}
+
+function pxRect(ctx, x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
 }
 
 function drawDestination(ctx, d, camera) {
