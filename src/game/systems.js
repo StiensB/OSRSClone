@@ -1,4 +1,4 @@
-import { aStar } from '../engine/pathfinding.js';
+import { aStar, findNearestWalkable } from '../engine/pathfinding.js';
 import { clamp, dist, levelForXp, randInt, xpForLevel } from '../engine/utils.js';
 import { ITEMS } from './data.js';
 import { isWalkable } from './world.js';
@@ -29,9 +29,19 @@ export function handleClick(state, tileX, tileY, target) {
 
 function setPath(state, tx, ty) {
   const { player, world } = state;
-  const path = aStar({ x: Math.round(player.x), y: Math.round(player.y) }, { x: tx, y: ty }, (x, y) => isWalkable(world, x, y), world.width, world.height);
+  const start = { x: clamp(Math.round(player.x), 0, world.width - 1), y: clamp(Math.round(player.y), 0, world.height - 1) };
+  const wanted = { x: clamp(Math.round(tx), 0, world.width - 1), y: clamp(Math.round(ty), 0, world.height - 1) };
+  const goal = findNearestWalkable(wanted, (x, y) => isWalkable(world, x, y), world.width, world.height);
+
+  if (!goal) {
+    player.path = [];
+    state.destination = null;
+    return;
+  }
+
+  const path = aStar(start, goal, (x, y) => isWalkable(world, x, y), world.width, world.height);
   player.path = path.slice(1);
-  state.destination = { x: tx, y: ty };
+  state.destination = goal;
 }
 
 export function updateMovement(state, dt) {
