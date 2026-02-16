@@ -85,6 +85,13 @@ function drawPlayer(ctx, p, camera) {
   pxRect(ctx, x + 8, y + 5 + bob, 1, 1, '#2a2a2a');
   pxRect(ctx, x + 13, y + 5 + bob, 1, 1, '#2a2a2a');
   pxRect(ctx, x + 3, y + 11 + bob, 2, 9, '#553254');
+
+  if (p.equipment?.weapon === 'bronze_axe') {
+    // simple equipped hatchet silhouette
+    pxRect(ctx, x + 17, y + 12 + bob, 1, 10, '#5e3b1f');
+    pxRect(ctx, x + 16, y + 12 + bob, 3, 2, '#8e8f93');
+    pxRect(ctx, x + 15, y + 13 + bob, 2, 2, '#8e8f93');
+  }
 }
 
 function drawNpcs(ctx, list, camera) {

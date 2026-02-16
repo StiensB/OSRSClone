@@ -68,7 +68,17 @@ export function updateSkilling(state, now) {
   }[node.action];
   if (!table) return;
 
-  if (!hasItem(p.inventory, table.tool)) { state.chat(`You need a ${ITEMS[table.tool].name}.`); p.action = null; return; }
+  if (node.action === 'woodcut' && p.equipment.weapon !== table.tool) {
+    state.chat(`You must equip a ${ITEMS[table.tool].name} to chop this tree.`);
+    p.action = null;
+    return;
+  }
+  if (node.action !== 'woodcut' && !hasUsableTool(p, table.tool)) {
+    state.chat(`You need a ${ITEMS[table.tool].name}.`);
+    p.action = null;
+    return;
+  }
+
   p.action.nextTick = now + 600;
   p.action.progress += 1;
   state.chat(`You ${node.action === 'woodcut' ? 'swing your hatchet' : node.action === 'mine' ? 'strike the vein' : 'cast your line'}...`, true);
@@ -179,7 +189,44 @@ export function addItem(inv, itemId, qty) {
   return true;
 }
 
+export function toggleEquip(state, inventoryIndex) {
+  const p = state.player;
+  const entry = p.inventory[inventoryIndex];
+  if (!entry) return false;
+  const meta = ITEMS[entry.itemId];
+  if (!meta?.slot || meta.stackable) return false;
+  const slot = meta.slot;
+
+  const currentlyEquipped = p.equipment[slot];
+  if (currentlyEquipped === entry.itemId) return false;
+  if (currentlyEquipped && !addItem(p.inventory, currentlyEquipped, 1)) {
+    state.chat('No room to swap equipment.');
+    return false;
+  }
+
+  p.equipment[slot] = entry.itemId;
+  p.inventory.splice(inventoryIndex, 1);
+  state.chat(`You equip ${meta.name}.`);
+  return true;
+}
+
+export function unequipSlot(state, slot) {
+  const p = state.player;
+  const itemId = p.equipment[slot];
+  if (!itemId) return false;
+  if (!addItem(p.inventory, itemId, 1)) {
+    state.chat('No inventory space to unequip this item.');
+    return false;
+  }
+  p.equipment[slot] = null;
+  state.chat(`You unequip ${ITEMS[itemId].name}.`);
+  return true;
+}
+
 function hasItem(inv, itemId) { return inv.some((s) => s.itemId === itemId); }
+function hasUsableTool(player, itemId) {
+  return player.equipment.weapon === itemId || hasItem(player.inventory, itemId);
+}
 
 export function grantXp(state, skill, amount) {
   const s = state.player.skills[skill];

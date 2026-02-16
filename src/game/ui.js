@@ -1,6 +1,6 @@
 import { combatLevel } from '../engine/utils.js';
 import { ITEMS, SKILL_NAMES } from './data.js';
-import { addItem } from './systems.js';
+import { addItem, toggleEquip, unequipSlot } from './systems.js';
 
 export function createUi(state) {
   const tabContent = document.getElementById('tabContent');
@@ -55,22 +55,37 @@ export function createUi(state) {
 
   function renderTab() {
     if (ui.activeTab === 'inventory') {
-      tabContent.innerHTML = '<div class="grid28"></div>';
-      const g = tabContent.firstElementChild;
+      tabContent.innerHTML = '<p>Click gear to equip it. Equip the Bronze Hatchet, then click a tree to chop logs.</p><div class="grid28"></div>';
+      const g = tabContent.querySelector('.grid28');
       for (let i = 0; i < 28; i++) {
         const s = state.player.inventory[i];
         const d = document.createElement('div'); d.className = 'slot';
-        if (s) { d.textContent = ITEMS[s.itemId].name; if (s.qty > 1) d.innerHTML += `<span class="qty">${s.qty}</span>`; addTip(d, `${ITEMS[s.itemId].name}: ${ITEMS[s.itemId].description}`); }
+        if (s) {
+          const item = ITEMS[s.itemId];
+          const isEquipped = item.slot && state.player.equipment[item.slot] === s.itemId;
+          d.textContent = item.name;
+          if (item.slot) d.textContent += ' (equip)';
+          if (s.qty > 1) d.innerHTML += `<span class="qty">${s.qty}</span>`;
+          if (isEquipped) d.style.outline = '2px solid #d4a045';
+          addTip(d, `${item.name}: ${item.description}${item.slot ? ` | Slot: ${item.slot}. Click to equip.` : ''}`);
+          if (item.slot) d.onclick = () => { if (toggleEquip(state, i)) ui.render(); };
+        }
         g.appendChild(d);
       }
     }
     if (ui.activeTab === 'equipment') {
-      tabContent.innerHTML = '<div id="eq"></div>';
+      tabContent.innerHTML = '<p>Click an equipped slot to unequip.</p><div id="eq"></div>';
       const slots = ['weapon','shield','helm','body','legs','boots','amulet','cape','ring'];
       const eq = document.getElementById('eq');
       slots.forEach((slot) => {
         const row = document.createElement('div'); row.className = 'skillRow';
-        row.innerHTML = `<span>${slot.toUpperCase()}</span><span>${state.player.equipment[slot] ? ITEMS[state.player.equipment[slot]].name : '-'}</span>`;
+        const equipped = state.player.equipment[slot];
+        row.innerHTML = `<span>${slot.toUpperCase()}</span><span>${equipped ? ITEMS[equipped].name : '-'}</span>`;
+        if (equipped) {
+          row.style.cursor = 'pointer';
+          row.onclick = () => { if (unequipSlot(state, slot)) ui.render(); };
+          addTip(row, `Click to unequip ${ITEMS[equipped].name}.`);
+        }
         eq.appendChild(row);
       });
     }
@@ -89,7 +104,7 @@ export function createUi(state) {
       const t = document.createElement('div'); t.className = 'skillRow'; t.innerHTML = `<strong>Total</strong><strong>${total}</strong>`; box.appendChild(t);
     }
     if (ui.activeTab === 'combat') {
-      tabContent.innerHTML = `<p>Style: Balanced Training</p><p>Weapon speed: 1.8s</p><p>Tip: Click any creature to engage.</p><p>Loop: gather resources → bank → fight raiders → loot coins.</p>`;
+      tabContent.innerHTML = `<p>Style: Balanced Training</p><p>Weapon speed: 1.8s</p><p>Tip: Click any creature to engage.</p><p>Woodcutting tip: equip a hatchet before clicking trees.</p>`;
     }
   }
 

@@ -33,12 +33,13 @@ You can try opening `index.html` directly, but some browsers restrict module/fil
 ## Controls
 - **Left click tile**: Walk there.
 - **Left click node/NPC/item**: Context action (gather, attack, pickup, bank).
+- **Click gear in Inventory**: Equip/unequip tools and weapons (equip hatchet to chop trees).
 - **I / S / E**: Switch tabs (Inventory / Skills / Equipment).
 - **Debug button**: Toggle debug panel (FPS + entity counters).
 - **Chat input**: Enter sends local chat line.
 
 ## Gameplay Loop
-1. Gather resources from trees, ore veins, and fishing shoals.
+1. Equip your Bronze Hatchet from Inventory, then gather resources from trees, ore veins, and fishing shoals.
 2. Deposit resources into the Town Vault bank.
 3. Fight wilderness creatures for loot and XP.
 4. Repeat to level combat + gathering skills.
