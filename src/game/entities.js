@@ -8,7 +8,11 @@ export function createPlayer(spawn) {
       { itemId: 'bronze_axe', qty: 1 }, { itemId: 'bronze_pick', qty: 1 }, { itemId: 'bronze_rod', qty: 1 }, { itemId: 'bronze_blade', qty: 1 }, { itemId: 'coins', qty: 25 }
     ],
     bank: [], equipment: { weapon: null, shield: null, helm: null, body: null, legs: null, boots: null, amulet: null, cape: null, ring: null },
-    skills, action: null, targetNpc: null, attackTimer: 0
+    skills, action: null, targetNpc: null, attackTimer: 0,
+    combatStyle: 'balanced',
+    quests: {
+      timber_trial: { id: 'timber_trial', title: 'Timber Trial', objective: 'Chop 5 logs', progress: 0, goal: 5, rewardCoins: 80, completed: false, rewarded: false }
+    }
   };
 }
 

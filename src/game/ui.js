@@ -1,6 +1,6 @@
 import { combatLevel } from '../engine/utils.js';
 import { ITEMS, SKILL_NAMES } from './data.js';
-import { addItem, toggleEquip, unequipSlot } from './systems.js';
+import { addItem, claimQuestReward, setCombatStyle, toggleEquip, unequipSlot } from './systems.js';
 
 export function createUi(state) {
   const tabContent = document.getElementById('tabContent');
@@ -38,6 +38,7 @@ export function createUi(state) {
     if (e.key.toLowerCase() === 'i') switchTab('inventory');
     if (e.key.toLowerCase() === 's') switchTab('skills');
     if (e.key.toLowerCase() === 'e') switchTab('equipment');
+    if (e.key.toLowerCase() === 'q') switchTab('quests');
   });
 
   function switchTab(tab) {
@@ -104,7 +105,40 @@ export function createUi(state) {
       const t = document.createElement('div'); t.className = 'skillRow'; t.innerHTML = `<strong>Total</strong><strong>${total}</strong>`; box.appendChild(t);
     }
     if (ui.activeTab === 'combat') {
-      tabContent.innerHTML = `<p>Style: Balanced Training</p><p>Weapon speed: 1.8s</p><p>Tip: Click any creature to engage.</p><p>Woodcutting tip: equip a hatchet before clicking trees.</p>`;
+      const style = state.player.combatStyle || 'balanced';
+      tabContent.innerHTML = `
+        <p>Choose your combat style (OSRS-like training focus):</p>
+        <div id="styleWrap" class="grid28"></div>
+        <p>Current style: <strong>${style}</strong></p>
+        <p>Tip: Accurate=Attack XP, Aggressive=Strength XP, Defensive=Defence XP.</p>
+      `;
+      const wrap = document.getElementById('styleWrap');
+      for (const styleName of ['accurate', 'aggressive', 'defensive', 'balanced']) {
+        const b = document.createElement('button');
+        b.textContent = styleName;
+        b.className = 'slot';
+        if (styleName === style) b.style.outline = '2px solid #d4a045';
+        b.onclick = () => { setCombatStyle(state, styleName); ui.render(); };
+        wrap.appendChild(b);
+      }
+    }
+    if (ui.activeTab === 'quests') {
+      const q = state.player.quests?.timber_trial;
+      if (!q) {
+        tabContent.innerHTML = '<p>No quests yet.</p>';
+      } else {
+        const status = q.rewarded ? 'Reward Claimed' : q.completed ? 'Completed' : 'In Progress';
+        tabContent.innerHTML = `
+          <h4>${q.title}</h4>
+          <p>${q.objective}</p>
+          <p>Progress: <strong>${q.progress}/${q.goal}</strong></p>
+          <p>Status: <strong>${status}</strong></p>
+          <p>Reward: ${q.rewardCoins} Sun Coins + 45 Woodcutting XP</p>
+          <button id="claimQuestBtn" ${(!q.completed || q.rewarded) ? 'disabled' : ''}>Claim Reward</button>
+        `;
+        const btn = document.getElementById('claimQuestBtn');
+        if (btn) btn.onclick = () => { if (claimQuestReward(state, q.id)) ui.render(); };
+      }
     }
   }
 

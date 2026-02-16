@@ -34,7 +34,8 @@ You can try opening `index.html` directly, but some browsers restrict module/fil
 - **Left click tile**: Walk there.
 - **Left click node/NPC/item**: Context action (gather, attack, pickup, bank).
 - **Click gear in Inventory**: Equip/unequip tools and weapons (equip hatchet to chop trees).
-- **I / S / E**: Switch tabs (Inventory / Skills / Equipment).
+- **Combat tab**: Choose combat style (Accurate/Aggressive/Defensive/Balanced) for OSRS-like XP training.
+- **I / S / E / Q**: Switch tabs (Inventory / Skills / Equipment / Quests).
 - **Debug button**: Toggle debug panel (FPS + entity counters).
 - **Chat input**: Enter sends local chat line.
 
@@ -42,7 +43,8 @@ You can try opening `index.html` directly, but some browsers restrict module/fil
 1. Equip your Bronze Hatchet from Inventory, then gather resources from trees, ore veins, and fishing shoals.
 2. Deposit resources into the Town Vault bank.
 3. Fight wilderness creatures for loot and XP.
-4. Repeat to level combat + gathering skills.
+4. Complete the starter quest in Quests for bonus coins/XP.
+5. Repeat to level combat + gathering skills.
 
 ## Features Included
 - Expanded tile world (180x180) with broader town, roads, lake, ridge passes, and deeper wilderness regions.
@@ -52,9 +54,11 @@ You can try opening `index.html` directly, but some browsers restrict module/fil
 - Bank UI with deposit/withdraw.
 - Skilling tick loop (600ms), tool requirements, depletion/respawn.
 - Basic combat formulas, NPC aggro/roaming, drops, respawn.
+- OSRS-like combat style selection that shifts combat XP focus.
 - Local save/load using `localStorage`.
 - Debug mode + lightweight sound beeps.
 - Improved tile/object shading and sprite detail for a clearer retro look.
+- Starter quest tracker with claimable rewards (Timber Trial).
 
 ## Data Files
 - `data/items.json`

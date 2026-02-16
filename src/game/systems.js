@@ -90,6 +90,7 @@ export function updateSkilling(state, now) {
   if (Math.random() < chance && addItem(p.inventory, table.item, 1)) {
     grantXp(state, table.skill, table.xp);
     state.chat(`You gather ${ITEMS[table.item].name}.`);
+    if (node.action === 'woodcut') updateQuestProgress(state, 'timber_trial', 1);
     if (Math.random() < 0.18) {
       node.depleted = true;
       node.respawn = now + 6000;
@@ -130,9 +131,10 @@ export function updateCombat(state, now) {
 }
 
 function swing(state, attacker, defender, fromPlayer) {
-  const atk = fromPlayer ? state.player.skills.Attack.level + 2 : attacker.attack;
-  const str = fromPlayer ? state.player.skills.Strength.level + 2 : attacker.strength;
-  const def = fromPlayer ? defender.defence : state.player.skills.Defence.level;
+  const styleBonus = fromPlayer ? combatStyleBonuses(state.player.combatStyle) : { atk: 0, str: 0, def: 0 };
+  const atk = fromPlayer ? state.player.skills.Attack.level + 2 + styleBonus.atk : attacker.attack;
+  const str = fromPlayer ? state.player.skills.Strength.level + 2 + styleBonus.str : attacker.strength;
+  const def = fromPlayer ? defender.defence : state.player.skills.Defence.level + styleBonus.def;
   const hitChance = clamp(0.42 + (atk - def) * 0.03, 0.1, 0.92);
   const hit = Math.random() < hitChance ? randInt(0, Math.max(1, Math.floor(str / 2))) : 0;
   defender.hp -= hit;
@@ -140,13 +142,38 @@ function swing(state, attacker, defender, fromPlayer) {
   state.chat(`${fromPlayer ? 'You' : attacker.name} hit ${fromPlayer ? defender.name : 'you'} for ${hit}.`, true);
   if (defender.hp <= 0) {
     if (fromPlayer) {
-      grantXp(state, 'Attack', 16); grantXp(state, 'Strength', 16); grantXp(state, 'Defence', 10); grantXp(state, 'Hitpoints', 7);
+      applyCombatXp(state);
       killNpc(state, defender);
       state.player.targetNpc = null;
     } else {
       respawnPlayer(state);
     }
   }
+}
+
+function applyCombatXp(state) {
+  const style = state.player.combatStyle || 'balanced';
+  if (style === 'accurate') {
+    grantXp(state, 'Attack', 24); grantXp(state, 'Hitpoints', 7);
+  } else if (style === 'aggressive') {
+    grantXp(state, 'Strength', 24); grantXp(state, 'Hitpoints', 7);
+  } else if (style === 'defensive') {
+    grantXp(state, 'Defence', 24); grantXp(state, 'Hitpoints', 7);
+  } else {
+    grantXp(state, 'Attack', 10); grantXp(state, 'Strength', 10); grantXp(state, 'Defence', 10); grantXp(state, 'Hitpoints', 7);
+  }
+}
+
+function combatStyleBonuses(style) {
+  if (style === 'accurate') return { atk: 2, str: 0, def: 0 };
+  if (style === 'aggressive') return { atk: 0, str: 2, def: 0 };
+  if (style === 'defensive') return { atk: 0, str: 0, def: 2 };
+  return { atk: 1, str: 1, def: 0 };
+}
+
+export function setCombatStyle(state, style) {
+  state.player.combatStyle = style;
+  state.chat(`Combat style set to ${style}.`);
 }
 
 function killNpc(state, npc) {
@@ -223,6 +250,30 @@ export function unequipSlot(state, slot) {
   return true;
 }
 
+function updateQuestProgress(state, questId, amount) {
+  const q = state.player.quests?.[questId];
+  if (!q || q.completed) return;
+  q.progress = clamp(q.progress + amount, 0, q.goal);
+  if (q.progress >= q.goal) {
+    q.completed = true;
+    state.chat(`Quest complete: ${q.title}. Claim reward in the Quest tab.`);
+    beep(960, 0.13, 'triangle', 0.06);
+  }
+}
+
+export function claimQuestReward(state, questId) {
+  const q = state.player.quests?.[questId];
+  if (!q || !q.completed || q.rewarded) return false;
+  if (!addItem(state.player.inventory, 'coins', q.rewardCoins)) {
+    state.chat('Need free inventory space to claim quest reward.');
+    return false;
+  }
+  q.rewarded = true;
+  grantXp(state, 'Woodcutting', 45);
+  state.chat(`Quest reward claimed: ${q.rewardCoins} Sun Coins + 45 Woodcutting XP.`);
+  return true;
+}
+
 function hasItem(inv, itemId) { return inv.some((s) => s.itemId === itemId); }
 function hasUsableTool(player, itemId) {
   return player.equipment.weapon === itemId || hasItem(player.inventory, itemId);
@@ -246,12 +297,21 @@ export function tickUiEffects(player, dt) {
 
 export function serialize(state) {
   const p = state.player;
-  return { x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,inventory:p.inventory,bank:p.bank,equipment:p.equipment,skills:p.skills };
+  return {
+    x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,
+    inventory:p.inventory,bank:p.bank,equipment:p.equipment,skills:p.skills,
+    combatStyle:p.combatStyle,quests:p.quests
+  };
 }
 
 export function deserialize(state, save) {
   if (!save) return;
   Object.assign(state.player, save);
+  if (!state.player.combatStyle) state.player.combatStyle = 'balanced';
+  if (!state.player.quests?.timber_trial) {
+    state.player.quests = state.player.quests || {};
+    state.player.quests.timber_trial = { id: 'timber_trial', title: 'Timber Trial', objective: 'Chop 5 logs', progress: 0, goal: 5, rewardCoins: 80, completed: false, rewarded: false };
+  }
 }
 
 export { xpForLevel };

@@ -25,7 +25,8 @@ const save = localStorage.getItem('emberfall-save-v1');
 if (save) deserialize(state, JSON.parse(save));
 else {
   state.chat('Welcome to Emberfall Basin. Left click to walk or interact.');
-  state.chat('Starter tools are in your inventory. Gather, bank, and battle.');
+  state.chat('Starter tools are in your inventory. Equip your hatchet, gather, bank, and battle.');
+  state.chat('New: choose combat style in Combat tab and claim your starter quest in Quests.');
 }
 
 const input = createInput(canvas);
