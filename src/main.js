@@ -23,8 +23,16 @@ state.ui = createUi(state);
 state.chat = state.ui.chat;
 
 const save = localStorage.getItem('emberfall-save-v1');
-if (save) deserialize(state, JSON.parse(save));
-else {
+if (save) {
+  try {
+    deserialize(state, JSON.parse(save));
+    if (!Number.isFinite(state.player.x) || !Number.isFinite(state.player.y)) throw new Error('Invalid player position in save');
+  } catch (err) {
+    console.warn('Save load failed, resetting save:', err);
+    localStorage.removeItem('emberfall-save-v1');
+    state.chat('Previous save was invalid and has been reset.');
+  }
+} else {
   state.chat('Welcome to Emberfall Basin. Left click to walk or interact.');
   state.chat('Starter tools are in your inventory. Equip your hatchet, gather, bank, and battle.');
   state.chat('New: choose combat style in Combat tab and claim your starter quest in Quests.');
