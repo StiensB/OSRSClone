@@ -1,0 +1,6 @@
+[
+  {"id":"meadow_pecker","name":"Meadow Pecker","level":2,"maxHp":6,"attack":2,"defence":1,"strength":2,"attackSpeed":1600,"aggro":0,"roam":5,
+   "loot":[{"itemId":"coins","chance":0.7,"qty":[1,6]}]},
+  {"id":"bog_raider","name":"Bog Raider","level":6,"maxHp":13,"attack":5,"defence":4,"strength":5,"attackSpeed":1900,"aggro":6,"roam":7,
+   "loot":[{"itemId":"ore","chance":0.5,"qty":[1,2]},{"itemId":"coins","chance":0.85,"qty":[6,18]}]}
+]

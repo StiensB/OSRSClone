@@ -1,0 +1,34 @@
+:root {
+  --bg:#141617;--panel:#22272b;--edge:#3e474e;--text:#e2e5e8;--accent:#d4a045;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Verdana,sans-serif;user-select:none}
+#app{display:grid;grid-template-columns:1fr 320px;gap:8px;padding:8px}
+#gameSection{position:relative;border:2px solid var(--edge);background:#0f1214;min-height:640px}
+#gameCanvas{display:block;width:100%;height:640px;image-rendering:pixelated;cursor:crosshair}
+#miniMap{position:absolute;right:8px;top:8px;border:2px solid var(--edge);background:#111;image-rendering:pixelated}
+#hudTopLeft{position:absolute;left:8px;top:8px;z-index:2;background:rgba(0,0,0,.55);padding:8px;border:1px solid #555;min-width:220px}
+.hpWrap{position:relative;background:#1d1d1d;height:18px;border:1px solid #555}
+#hpBar{height:100%;background:linear-gradient(90deg,#7ee081,#48944c);width:100%}
+#hpText{position:absolute;left:50%;top:0;transform:translateX(-50%);font-size:11px;line-height:16px}
+#combatLevel{color:var(--accent);margin-left:10px}
+#rightPanel{border:2px solid var(--edge);background:var(--panel);padding:8px}
+#tabButtons{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+#tabButtons button{background:#2d3338;color:var(--text);border:1px solid #4f5a62;padding:6px;cursor:pointer}
+#tabButtons button.active{background:#3f4a53;border-color:var(--accent)}
+#tabContent{border:1px solid var(--edge);min-height:580px;padding:6px;overflow:auto}
+.grid28{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.slot{background:#171b1f;border:1px solid #4a545d;min-height:56px;padding:4px;font-size:11px;position:relative;cursor:pointer}
+.slot:hover{outline:1px solid var(--accent)}
+.qty{position:absolute;right:3px;bottom:2px;color:#fff39a;font-size:10px}
+#chatSection{margin:0 8px 8px;border:2px solid var(--edge);background:var(--panel);padding:6px}
+#chatLog{height:130px;overflow:auto;background:#111;border:1px solid #555;padding:4px;font-size:12px}
+#chatInput{width:100%;margin-top:6px;background:#161a1d;border:1px solid #555;color:var(--text);padding:6px}
+#tooltip{position:absolute;z-index:5;background:#111;border:1px solid #bca364;padding:6px;font-size:12px;pointer-events:none}
+.hidden{display:none!important}
+#bankModal{position:fixed;inset:0;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;z-index:10}
+.modalBody{width:80vw;max-width:950px;background:#1f2428;border:2px solid #687380;padding:10px}
+.bankCols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.listGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;max-height:430px;overflow:auto;background:#14191c;padding:4px;border:1px solid #59636c}
+.skillRow{display:flex;justify-content:space-between;padding:5px;border-bottom:1px solid #394048}
+#debugPanel{font-size:12px;margin-top:4px;color:#b6f6ff}
